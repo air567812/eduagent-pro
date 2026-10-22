@@ -1,0 +1,146 @@
+// Prisma Schema for EduAgent Pro
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// User Model with RBAC & Stripe Subscriptions
+model User {
+  id                     String          @id @default(cuid())
+  name                   String?
+  email                  String          @unique
+  passwordHash           String?
+  role                   String          @default("STUDENT") // STUDENT, EDUCATOR, INSTITUTION_ADMIN, SUPER_ADMIN
+  tier                   String          @default("BASIC")   // BASIC, PRO, PREMIUM, INSTITUTIONAL
+  avatarUrl              String?
+  institutionId          String?
+  institution            Institution?    @relation(fields: [institutionId], references: [id])
+  
+  // Stripe Subscription details
+  stripeCustomerId       String?         @unique
+  stripeSubscriptionId   String?         @unique
+  stripePriceId          String?
+  stripeCurrentPeriodEnd DateTime?
+  
+  // Relations
+  sessions               UploadSession[]
+  generations            AIGeneration[]
+  folders                Folder[]
+  usageRecords           UsageRecord[]
+  auditLogs              AuditLog[]
+  
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+}
+
+model Institution {
+  id              String   @id @default(cuid())
+  name            String
+  domain          String?  @unique
+  seatsAllocated  Int      @default(50)
+  seatsUsed       Int      @default(0)
+  adminEmail      String
+  users           User[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model UploadSession {
+  id           String         @id @default(cuid())
+  userId       String
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title        String
+  totalFiles   Int            @default(0)
+  totalImages  Int            @default(0)
+  status       String         @default("READY") // READY, PROCESSING, ARCHIVED
+  files        UploadedFile[]
+  generations  AIGeneration[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+model UploadedFile {
+  id             String        @id @default(cuid())
+  sessionId      String
+  session        UploadSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  fileName       String
+  fileType       String        // application/pdf, image/png, image/jpeg, application/vnd.openxmlformats-officedocument.wordprocessingml.document
+  fileSize       Int           // bytes
+  storagePath    String
+  extractedText  String?
+  ocrConfidence  Float?
+  orderIndex     Int           @default(0)
+  createdAt      DateTime      @default(now())
+}
+
+model AIGeneration {
+  id           String         @id @default(cuid())
+  userId       String
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId    String?
+  session      UploadSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  toolType     String         // IMPORTANT_QUESTIONS, SUMMARIZE_TOPIC, etc.
+  parameters   String         // JSON string: { difficulty, examType, length, focus }
+  prompt       String
+  resultData   String         // JSON string with validated structured output
+  tokensUsed   Int            @default(0)
+  modelName    String         @default("gpt-4o")
+  durationMs   Int            @default(0)
+  bookmarked   Boolean        @default(false)
+  folderId     String?
+  folder       Folder?        @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  createdAt    DateTime       @default(now())
+}
+
+model Folder {
+  id           String         @id @default(cuid())
+  userId       String
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  color        String         @default("#3B82F6")
+  generations  AIGeneration[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+model UsageRecord {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date               String   // YYYY-MM-DD
+  imagesUploaded     Int      @default(0)
+  documentsUploaded  Int      @default(0)
+  aiRequestsCount    Int      @default(0)
+  tokensConsumed     Int      @default(0)
+  
+  @@unique([userId, date])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String   // USER_LOGIN, TIER_UPGRADE, TOOL_EXECUTED, UPLOAD_OVERLIMIT, ADMIN_OVERRIDE
+  ipAddress  String?
+  userAgent  String?
+  metadata   String?  // JSON string
+  createdAt  DateTime @default(now())
+}
+
+model ToolConfiguration {
+  id                   String   @id @default(cuid())
+  toolKey              String   @unique
+  displayName          String
+  description          String
+  enabled              Boolean  @default(true)
+  minTier              String   @default("BASIC")
+  defaultModel         String   @default("gpt-4o")
+  systemPromptOverride String?
+  temperature          Float    @default(0.3)
+  maxTokens            Int      @default(4096)
+  updatedAt            DateTime @updatedAt
+}
