@@ -26,7 +26,7 @@ export default function MobileBottomNav() {
 
   const navItems = [
     {
-      name: 'Tools',
+      name: 'AI Tools',
       href: '/tools',
       icon: Wand2,
       active: pathname === '/tools'
@@ -38,27 +38,18 @@ export default function MobileBottomNav() {
       active: pathname === '/upload'
     },
     {
-      name: 'Workspace',
+      name: 'My Library',
       href: '/dashboard',
       icon: LayoutDashboard,
       active: pathname === '/dashboard'
     },
     {
-      name: 'Plan',
-      href: '/billing',
-      icon: CreditCard,
-      active: pathname === '/billing'
+      name: isSuperAdmin ? 'Admin' : 'Plan',
+      href: isSuperAdmin ? '/admin' : '/billing',
+      icon: isSuperAdmin ? ShieldAlert : CreditCard,
+      active: pathname === (isSuperAdmin ? '/admin' : '/billing')
     }
   ];
-
-  if (isSuperAdmin) {
-    navItems.push({
-      name: 'Admin',
-      href: '/admin',
-      icon: ShieldAlert,
-      active: pathname === '/admin'
-    });
-  }
 
   return (
     <nav

@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   UploadCloud,
+  Camera,
   FileText,
   Image as ImageIcon,
   FileCode,
@@ -22,10 +23,14 @@ import { Tier, UploadedFileItem } from '@/types';
 import { TIER_LIMITS, validateUploadLimits } from '@/lib/limits';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
+import { batchExtractFiles } from '@/services/ocrService';
 
 export default function FileUploaderEngine() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const [rawFiles, setRawFiles] = useState<File[]>([]);
+  const [batchStatusText, setBatchStatusText] = useState<string>('Processing materials...');
   const { user } = useAuth();
   const { success: toastSuccess, error: toastError, warning: toastWarning } = useToast();
 
@@ -99,6 +104,7 @@ export default function FileUploaderEngine() {
 
     if (newItems.length > 0) {
       setFiles((prev) => [...prev, ...newItems]);
+    setRawFiles((prev) => [...prev, ...Array.from(selectedFiles)]);
       setSuccessNotice(`Added ${newItems.length} item(s) to this session.`);
       toastSuccess('Materials Added', `Added ${newItems.length} item(s) (${projectedImageCount}/${maxImages} images)`);
       setTimeout(() => setSuccessNotice(null), 3500);
@@ -145,17 +151,24 @@ export default function FileUploaderEngine() {
     setOverallProgress(5);
     setErrorMessage(null);
 
-    // Simulated chunked upload with progressive OCR scanning
-    for (let p = 10; p <= 100; p += 15) {
-      await new Promise((res) => setTimeout(res, 200));
-      setOverallProgress(p);
-      setFiles((prev) =>
-        prev.map((f, i) => ({
-          ...f,
-          status: p < 60 ? 'UPLOADING' : p < 95 ? 'PROCESSING' : 'COMPLETED',
-          progress: Math.min(100, p + (i % 3) * 5)
-        }))
-      );
+    let finalExtractedFiles: any[] = [];
+    try {
+      setBatchStatusText('Extracting text and scanning notes with OCR...');
+      const extracted = await batchExtractFiles(rawFiles, (p) => {
+        setOverallProgress(p.percentage);
+        setBatchStatusText(p.statusText);
+      });
+
+      finalExtractedFiles = files.map((f, i) => ({
+        ...f,
+        extractedText: extracted[i]?.text || f.extractedText,
+        status: 'COMPLETED',
+        progress: 100
+      }));
+      setFiles(finalExtractedFiles);
+    } catch (e: any) {
+      console.warn('Batch OCR extraction notice:', e);
+      finalExtractedFiles = files.map((f) => ({ ...f, status: 'COMPLETED', progress: 100 }));
     }
 
     // Save session in local storage / session history
@@ -165,7 +178,7 @@ export default function FileUploaderEngine() {
       title: sessionTitle,
       totalFiles: files.length,
       totalImages: imageCount,
-      files,
+      files: finalExtractedFiles.length > 0 ? finalExtractedFiles : files,
       createdAt: new Date().toISOString()
     };
     localStorage.setItem('eduagent_active_session', JSON.stringify(sessionData));
@@ -264,6 +277,14 @@ export default function FileUploaderEngine() {
           className="hidden"
           onChange={(e) => handleFilesSelected(e.target.files)}
         />
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => handleFilesSelected(e.target.files)}
+        />
         <div className="w-14 h-14 rounded-2xl bg-brand-100 text-brand-600 flex items-center justify-center mx-auto mb-3 shadow-inner">
           <UploadCloud className="w-7 h-7" />
         </div>
@@ -275,7 +296,17 @@ export default function FileUploaderEngine() {
           <strong className="text-brand-600">{maxImages} simultaneous images</strong> for lecture notes & textbook pages.
         </p>
 
-        <div className="mt-4 flex items-center justify-center gap-3 text-xs text-slate-600">
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2.5 text-xs text-slate-600">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              cameraInputRef.current?.click();
+            }}
+            className="flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg border border-blue-200 font-semibold transition-colors"
+          >
+            <Camera className="w-4 h-4 text-blue-600" /> Snap Photo (Camera)
+          </button>
           <span className="flex items-center gap-1 bg-white px-2.5 py-1 rounded-md border border-slate-200">
             <FileText className="w-3.5 h-3.5 text-blue-500" /> PDF & Docs
           </span>
@@ -294,7 +325,7 @@ export default function FileUploaderEngine() {
           <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
             <span className="flex items-center gap-2">
               <RefreshCw className="w-4 h-4 animate-spin text-brand-600" />
-              Batch Chunking & Vision OCR Processing...
+              {batchStatusText}
             </span>
             <span className="text-brand-700">{overallProgress}%</span>
           </div>

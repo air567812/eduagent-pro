@@ -72,10 +72,10 @@ export default function BillingPage() {
   const getTierPricing = (tier: Tier) => {
     const prices: Record<Tier, { usd: number; inr: number }> = {
       BASIC: { usd: 0, inr: 0 },
-      PRO: { usd: 19, inr: 799 },
-      PREMIUM: { usd: 49, inr: 1499 },
-      INSTITUTIONAL: { usd: 199, inr: 9999 },
-      EDUCATOR: { usd: 0, inr: 0 }
+      PRO: { usd: 9, inr: 199 },
+      PREMIUM: { usd: 19, inr: 499 },
+      INSTITUTIONAL: { usd: 99, inr: 2999 },
+      EDUCATOR: { usd: 49, inr: 999 }
     };
     return prices[tier] || prices.BASIC;
   };

@@ -74,3 +74,76 @@ body {
 .rotate-y-180 {
   transform: rotateY(180deg);
 }
+
+/* ==================================================================== */
+/* BUILT-IN PRINT ENGINE: ACADEMIC WORKSHEET & REPORT OPTIMIZATION      */
+/* ==================================================================== */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 11pt !important;
+    line-height: 1.5 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Hide navigation, toolbars, buttons, mobile nav, and dynamic canvas */
+  nav,
+  header,
+  footer,
+  aside,
+  button,
+  .no-print,
+  .print-hide,
+  #mobile-bottom-nav,
+  .liquid-background,
+  [role="dialog"] {
+    display: none !important;
+  }
+
+  /* Expand print area to full page with zero clipping */
+  main,
+  .print-container,
+  .max-w-5xl,
+  .space-y-6 {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: transparent !important;
+  }
+
+  /* Force elevated cards to clean printable bordered containers */
+  .bg-white,
+  .dark\:bg-\[\#111827\],
+  .bg-slate-900,
+  .bg-\[\#111827\],
+  .bg-slate-50 {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: none !important;
+  }
+
+  /* High-contrast text colors for printers */
+  p, span, div, li {
+    color: #0f172a !important;
+  }
+
+  /* Headings & Page-break preservation */
+  h1, h2, h3, h4 {
+    page-break-after: avoid;
+    color: #0284c7 !important;
+  }
+
+  .rounded-2xl,
+  .p-5,
+  .p-6,
+  .space-y-4 > div {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}

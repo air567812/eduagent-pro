@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth';
 import { checkAndIncrementRateLimit } from '@/lib/rate-limit';
-import { runEducationalToolAgent } from '@/lib/openai';
+import { executeEducationalAI, AIProvider } from '@/services/aiService';
 import { getToolConfig } from '@/lib/tools-config';
 import prisma from '@/lib/prisma';
 import { ToolType, Tier } from '@/types';
@@ -14,10 +14,9 @@ export async function POST(req: NextRequest) {
     const userTier: Tier = user?.tier || 'BASIC';
 
     const body = await req.json();
-    const { toolKey, sourceText, parameters, targetModel, sessionId, apiKey: bodyApiKey } = body;
+    const { toolKey, sourceText, parameters, targetModel, sessionId, apiKey: bodyApiKey, provider } = body;
 
-    // Check for custom user API key in headers or body
-    const headerApiKey = req.headers.get('x-openai-api-key') || '';
+    const headerApiKey = req.headers.get('x-openai-api-key') || req.headers.get('x-ai-api-key') || '';
     const customApiKey = (bodyApiKey || headerApiKey || process.env.OPENAI_API_KEY || '').trim();
 
     if (!toolKey) {
@@ -29,70 +28,55 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Unknown tool key: ${toolKey}` }, { status: 400 });
     }
 
-    // Rate Limiting check
-    const userIdToCheck = user?.id || 'usr_anonymous_student';
-    const rateCheck = await checkAndIncrementRateLimit(userIdToCheck, userTier);
-    if (!rateCheck.allowed) {
-      return NextResponse.json(
-        {
-          error: `Daily rate limit reached (${rateCheck.maxLimit} requests/day on your ${userTier} tier). Upgrade your plan or try again tomorrow.`,
-          code: 'RATE_LIMIT_EXCEEDED'
-        },
-        { status: 429 }
-      );
+    // Rate Limiting check (Bypass for SUPER_ADMIN or EDUCATOR)
+    const isEducatorOrAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'INSTITUTION_ADMIN' || userTier === 'EDUCATOR';
+    if (!isEducatorOrAdmin) {
+      const userIdToCheck = user?.id || 'usr_anonymous_student';
+      const rateCheck = await checkAndIncrementRateLimit(userIdToCheck, userTier);
+      if (!rateCheck.allowed) {
+        return NextResponse.json(
+          {
+            error: `Daily rate limit reached (${rateCheck.maxLimit} requests/day on your ${userTier} tier). Upgrade your plan or try again tomorrow.`,
+            code: 'RATE_LIMIT_EXCEEDED'
+          },
+          { status: 429 }
+        );
+      }
     }
 
-    // Run OpenAI Agent with structured output
-    const agentResult = await runEducationalToolAgent({
+    // Run Free Multi-Provider AI Engine
+    const agentResult = await executeEducationalAI({
       toolKey: toolKey as ToolType,
       sourceText: sourceText || 'Standard lecture notes and exam curriculum content.',
       parameters: parameters || {},
-      targetModel,
-      apiKey: customApiKey
+      provider: (provider as AIProvider) || 'POLLINATIONS_FREE',
+      apiKey: customApiKey,
+      model: targetModel
     });
 
-    // Safely save generation in database if existing user is present
     let generationId = `gen_${Date.now()}`;
     try {
-      let validUserId = null;
       if (user?.id) {
         const dbUser = await prisma.user.findFirst({
-          where: {
-            OR: [{ id: user.id }, { email: user.email }]
-          }
+          where: { OR: [{ id: user.id }, { email: user.email }] }
         });
-        if (dbUser) validUserId = dbUser.id;
-      }
-
-      if (validUserId) {
-        const record = await prisma.aIGeneration.create({
-          data: {
-            id: generationId,
-            userId: validUserId,
-            sessionId: sessionId || null,
-            toolType: toolKey,
-            parameters: JSON.stringify(parameters || {}),
-            prompt: sourceText?.slice(0, 500) || '',
-            resultData: JSON.stringify(agentResult.data),
-            tokensUsed: agentResult.tokensUsed,
-            modelName: agentResult.modelUsed,
-            durationMs: agentResult.durationMs
-          }
-        });
-        generationId = record.id;
-
-        await prisma.auditLog.create({
-          data: {
-            userId: validUserId,
-            action: 'TOOL_EXECUTED',
-            metadata: JSON.stringify({
-              toolKey,
-              tokens: agentResult.tokensUsed,
-              model: agentResult.modelUsed,
-              isLive: agentResult.isLiveOpenAI
-            })
-          }
-        });
+        if (dbUser) {
+          const record = await prisma.aIGeneration.create({
+            data: {
+              id: generationId,
+              userId: dbUser.id,
+              sessionId: sessionId || null,
+              toolType: toolKey,
+              parameters: JSON.stringify(parameters || {}),
+              prompt: sourceText?.slice(0, 500) || '',
+              resultData: JSON.stringify(agentResult.data),
+              tokensUsed: agentResult.tokensUsed,
+              modelName: `${agentResult.providerUsed} - ${agentResult.modelUsed}`,
+              durationMs: agentResult.durationMs
+            }
+          });
+          generationId = record.id;
+        }
       }
     } catch (dbErr) {
       console.warn('Generation DB log deferred:', dbErr);
@@ -100,12 +84,22 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      generationId,
-      result: agentResult,
-      remainingDailyQuota: rateCheck.remaining
+      result: {
+        id: generationId,
+        toolKey,
+        data: agentResult.data,
+        tokensUsed: agentResult.tokensUsed,
+        modelUsed: `${agentResult.providerUsed} - ${agentResult.modelUsed}`,
+        durationMs: agentResult.durationMs,
+        isLiveOpenAI: !agentResult.isFallback,
+        quotaWarning: agentResult.quotaWarning
+      }
     });
   } catch (error: any) {
-    console.error('AI Generation API error:', error);
-    return NextResponse.json({ error: error.message || 'AI processing failed' }, { status: 500 });
+    console.error('API /api/ai/generate error:', error);
+    return NextResponse.json(
+      { error: error.message || 'Generation failed.', code: 'AI_AGENT_ERROR' },
+      { status: 500 }
+    );
   }
 }

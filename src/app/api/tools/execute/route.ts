@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth';
 import { checkAndIncrementRateLimit } from '@/lib/rate-limit';
-import { runEducationalToolAgent } from '@/lib/openai';
+import { executeEducationalAI, AIProvider } from '@/services/aiService';
 import { getToolConfig } from '@/lib/tools-config';
 import prisma from '@/lib/prisma';
 import { ToolType, Tier } from '@/types';
@@ -20,9 +20,9 @@ export async function POST(req: NextRequest) {
     const targetModel = body.targetModel || body.model;
     const sessionId = body.sessionId;
     const imageUrls = body.imageUrls || body.images || [];
+    const provider = body.provider as AIProvider;
 
-    // Resolve API key
-    const headerApiKey = req.headers.get('x-openai-api-key') || '';
+    const headerApiKey = req.headers.get('x-openai-api-key') || req.headers.get('x-ai-api-key') || '';
     const customApiKey = (body.apiKey || headerApiKey || process.env.OPENAI_API_KEY || '').trim();
 
     if (!toolKey) {
@@ -40,7 +40,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Rate Limiting check (Bypass for SUPER_ADMIN or EDUCATOR)
     const isEducatorOrAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'INSTITUTION_ADMIN' || user?.tier === 'EDUCATOR';
     if (!isEducatorOrAdmin) {
       const userIdToCheck = user?.id || 'usr_anonymous_student';
@@ -56,45 +55,40 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Run Educational Tool Agent
-    const agentResult = await runEducationalToolAgent({
+    // Run Free Multi-Provider AI Engine
+    const agentResult = await executeEducationalAI({
       toolKey,
       sourceText: sourceText || 'Standard comprehensive lecture notes and exam curriculum content.',
       imageUrls,
       parameters,
-      targetModel,
-      apiKey: customApiKey
+      provider: provider || 'POLLINATIONS_FREE',
+      apiKey: customApiKey,
+      model: targetModel
     });
 
-    // Safely log execution to database if user is known
     let generationId = `gen_${Date.now()}`;
     try {
-      let validUserId = null;
       if (user?.id) {
         const dbUser = await prisma.user.findFirst({
-          where: {
-            OR: [{ id: user.id }, { email: user.email }]
-          }
+          where: { OR: [{ id: user.id }, { email: user.email }] }
         });
-        if (dbUser) validUserId = dbUser.id;
-      }
-
-      if (validUserId) {
-        const record = await prisma.aIGeneration.create({
-          data: {
-            id: generationId,
-            userId: validUserId,
-            sessionId: sessionId || null,
-            toolType: toolKey,
-            parameters: JSON.stringify(parameters),
-            prompt: sourceText?.slice(0, 500) || '',
-            resultData: JSON.stringify(agentResult.data),
-            tokensUsed: agentResult.tokensUsed,
-            modelName: agentResult.modelUsed,
-            durationMs: agentResult.durationMs
-          }
-        });
-        generationId = record.id;
+        if (dbUser) {
+          const record = await prisma.aIGeneration.create({
+            data: {
+              id: generationId,
+              userId: dbUser.id,
+              sessionId: sessionId || null,
+              toolType: toolKey,
+              parameters: JSON.stringify(parameters),
+              prompt: sourceText?.slice(0, 500) || '',
+              resultData: JSON.stringify(agentResult.data),
+              tokensUsed: agentResult.tokensUsed,
+              modelName: `${agentResult.providerUsed} - ${agentResult.modelUsed}`,
+              durationMs: agentResult.durationMs
+            }
+          });
+          generationId = record.id;
+        }
       }
     } catch (dbErr) {
       console.warn('Execution audit DB note:', dbErr);
@@ -107,9 +101,9 @@ export async function POST(req: NextRequest) {
       toolTitle: toolConfig.title,
       data: agentResult.data,
       tokensUsed: agentResult.tokensUsed,
-      modelUsed: agentResult.modelUsed,
+      modelUsed: `${agentResult.providerUsed} - ${agentResult.modelUsed}`,
       durationMs: agentResult.durationMs,
-      isLiveOpenAI: agentResult.isLiveOpenAI,
+      isLiveOpenAI: !agentResult.isFallback,
       quotaWarning: agentResult.quotaWarning
     });
   } catch (error: any) {
@@ -128,6 +122,7 @@ export async function GET() {
   return NextResponse.json({
     status: 'online',
     endpoint: '/api/tools/execute',
+    engine: 'Zero-Cost Free AI Pipeline (Pollinations + Gemini + Groq)',
     supportedToolsCount: 15
   });
 }

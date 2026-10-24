@@ -84,12 +84,13 @@ export async function syncUserProfileToFirestore(
       const existingData = docSnap.data();
 
       // If user is primary admin, ensure their Firestore doc has super admin privileges
-      if (isPrimaryAdmin && (existingData.role !== 'SUPER_ADMIN' || existingData.subscriptionTier !== 'EDUCATOR')) {
+      if (isPrimaryAdmin) {
         await updateDoc(userDocRef, {
           role: 'SUPER_ADMIN',
           subscriptionTier: 'EDUCATOR',
           subscriptionStatus: 'ACTIVE',
           tier: 'EDUCATOR',
+          imageLimitPerSession: 999,
           updatedAt: serverTimestamp()
         });
       }
@@ -116,6 +117,7 @@ export async function syncUserProfileToFirestore(
         subscriptionTier,
         tier: subscriptionTier,
         subscriptionStatus,
+        imageLimitPerSession: isPrimaryAdmin ? 999 : (subscriptionTier === 'PRO' ? 75 : subscriptionTier === 'PREMIUM' ? 150 : 25),
         photoURL: fbUser.photoURL || null,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()

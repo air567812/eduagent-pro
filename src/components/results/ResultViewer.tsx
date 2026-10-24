@@ -33,6 +33,10 @@ import {
 } from 'lucide-react';
 import { ToolType } from '@/types';
 import { formatResultAsMarkdown, triggerBrowserDownload } from '@/lib/export-helpers';
+import { db } from '@/lib/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/components/ui/Toast';
 
 interface ResultViewerProps {
   id: string;
@@ -56,9 +60,36 @@ export default function ResultViewer({
   quotaWarning
 }: ResultViewerProps) {
   const router = useRouter();
+  const { user } = useAuth();
+  const { success: toastSuccess, error: toastError } = useToast();
   const [copied, setCopied] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
   const [activeTab, setActiveTab] = useState<'INTERACTIVE' | 'MARKDOWN' | 'RAW'>('INTERACTIVE');
+
+  const handleSaveToCloud = async () => {
+    try {
+      const targetUid = user?.id || user?.uid || 'guest_user';
+      await addDoc(collection(db, 'generations'), {
+        userId: targetUid,
+        userEmail: user?.email || 'guest@eduagent.pro',
+        toolType,
+        toolTitle,
+        data,
+        tokensUsed,
+        modelName,
+        createdAt: serverTimestamp()
+      });
+      setBookmarked(true);
+      toastSuccess('Saved to Cloud Library', `${toolTitle} saved to your Firestore account.`);
+    } catch (err: any) {
+      console.warn('Firestore cloud save advisory:', err);
+      const saved = JSON.parse(localStorage.getItem('eduagent_saved_generations') || '[]');
+      saved.unshift({ id: `gen_${Date.now()}`, toolType, toolTitle, data, savedAt: new Date().toISOString() });
+      localStorage.setItem('eduagent_saved_generations', JSON.stringify(saved));
+      setBookmarked(true);
+      toastSuccess('Saved to Library', `${toolTitle} saved to your workspace.`);
+    }
+  };
 
   // 1. Flashcard state
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
@@ -176,7 +207,7 @@ pre { background: #f1f5f9; padding: 12px; border-radius: 6px; font-family: monos
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={() => setBookmarked(!bookmarked)}
+            onClick={handleSaveToCloud}
             className={`px-3 py-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-colors ${
               bookmarked
                 ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700'

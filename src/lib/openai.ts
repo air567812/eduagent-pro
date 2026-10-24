@@ -129,7 +129,7 @@ Do NOT enclose your response in backticks like \`\`\`json. Output ONLY the raw J
 /**
  * Realistic pedagogical structured mock data matching each tool's Zod schema.
  */
-function generateRealisticMockOutput(toolKey: ToolType, sourceText: string, params: any = {}): any {
+export function generateRealisticMockOutput(toolKey: ToolType, sourceText: string, params: any = {}): any {
   const sampleTopic = sourceText.slice(0, 80).replace(/\n/g, ' ') || 'Advanced Neural Networks & Backpropagation';
 
   switch (toolKey) {
