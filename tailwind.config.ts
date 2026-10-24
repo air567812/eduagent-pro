@@ -11,25 +11,29 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          50: "#f0f7ff",
-          100: "#e0effe",
-          200: "#bae0fd",
-          300: "#7cc5fb",
-          400: "#36a6f7",
-          500: "#0c8ce9",
-          600: "#026fc7",
-          700: "#0358a1",
-          800: "#074b85",
-          900: "#0c3f6e",
-          950: "#082849",
+          50: "#eff6ff",
+          100: "#dbeafe",
+          200: "#bfdbfe",
+          300: "#93c5fd",
+          400: "#60a5fa",
+          500: "#3b82f6",
+          600: "#2563eb", // Royal Sapphire
+          700: "#1d4ed8",
+          800: "#1e40af",
+          900: "#1e3a8a",
+          950: "#172554",
         },
-        cosmic: {
-          950: "#080B16",
-          900: "#0D1127",
-          850: "#121735",
-          800: "#1A2148",
-          700: "#252E63",
-          600: "#374288"
+        indigo: {
+          600: "#4f46e5",
+          700: "#4338ca",
+        },
+        teal: {
+          600: "#0d9488",
+        },
+        obsidian: {
+          950: "#090D16", // Deep Obsidian Slate
+          900: "#0c111d",
+          800: "#111827", // Elevated Navy-Slate
         },
         slate: {
           850: "#152033",
@@ -37,12 +41,11 @@ const config: Config = {
         }
       },
       boxShadow: {
-        'glow-ai': '0 0 25px rgba(168,85,247,0.45)',
-        'glow-cyan': '0 0 25px rgba(6,182,212,0.45)',
-        'glow-pink': '0 0 25px rgba(236,72,153,0.45)',
-        'glow-amber': '0 0 25px rgba(245,158,11,0.45)',
-        'glow-gold': '0 0 30px rgba(251,191,36,0.55)',
-        'glass-inner': 'inset 0 1px 1px 0 rgba(255, 255, 255, 0.15)'
+        'enterprise-card': '0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.03)',
+        'enterprise-hover': '0 10px 30px -4px rgba(15, 23, 42, 0.08), 0 4px 10px -2px rgba(15, 23, 42, 0.05)',
+        'enterprise-dark': '0 8px 30px rgba(0, 0, 0, 0.35)',
+        'brand-focus': '0 0 0 3px rgba(37, 99, 235, 0.25)',
+        'glass-inner': 'inset 0 1px 1px 0 rgba(255, 255, 255, 0.08)'
       },
       keyframes: {
         'laser-scan': {

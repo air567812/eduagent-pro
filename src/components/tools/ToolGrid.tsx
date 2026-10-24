@@ -64,10 +64,10 @@ export default function ToolGrid({
 
   const categories = [
     { id: 'ALL', name: 'All 15 Tools' },
-    { id: 'EXAM_SUITE', name: 'Exam & Questions (Violet/Pink)' },
-    { id: 'SUMMARY_SUITE', name: 'Summaries (Cyan/Blue)' },
-    { id: 'ANALYSIS_SUITE', name: 'Analysis (Emerald/Mint)' },
-    { id: 'STUDY_SUITE', name: 'Interactive (Amber/Coral)' }
+    { id: 'EXAM_SUITE', name: 'Exams & Quizzes' },
+    { id: 'SUMMARY_SUITE', name: 'Summaries & Notes' },
+    { id: 'ANALYSIS_SUITE', name: 'Analysis & Reports' },
+    { id: 'STUDY_SUITE', name: 'Interactive Learning' }
   ];
 
   const getToolSuite = (key: ToolType) => {
@@ -79,11 +79,9 @@ export default function ToolGrid({
       case 'PRACTICE_TEST_GENERATOR':
         return {
           suiteId: 'EXAM_SUITE',
-          suiteName: 'Exam & Question Suite',
-          cardGradient: 'from-purple-950/45 via-slate-900/80 to-pink-950/40 border-purple-500/30 hover:border-pink-400 hover:shadow-[0_0_30px_rgba(168,85,247,0.35)]',
-          iconGradient: 'from-purple-500 via-violet-500 to-pink-500 shadow-purple-500/40',
-          textColor: 'text-pink-300',
-          badgeStyle: 'bg-purple-500/20 text-purple-200 border-purple-400/40'
+          suiteName: 'Exam Suite',
+          iconBg: 'bg-blue-600/10 text-blue-400 border border-blue-500/20',
+          badgeStyle: 'bg-blue-500/10 text-blue-400 border-blue-500/20'
         };
       case 'SUMMARIZE_TOPIC':
       case 'SUMMARIZE_CHAPTER':
@@ -91,11 +89,9 @@ export default function ToolGrid({
       case 'REVISION_NOTES':
         return {
           suiteId: 'SUMMARY_SUITE',
-          suiteName: 'Summarization Suite',
-          cardGradient: 'from-cyan-950/45 via-slate-900/80 to-blue-950/40 border-cyan-500/30 hover:border-cyan-400 hover:shadow-[0_0_30px_rgba(6,182,212,0.35)]',
-          iconGradient: 'from-cyan-400 via-teal-500 to-blue-500 shadow-cyan-500/40',
-          textColor: 'text-cyan-300',
-          badgeStyle: 'bg-cyan-500/20 text-cyan-200 border-cyan-400/40'
+          suiteName: 'Summary Suite',
+          iconBg: 'bg-indigo-600/10 text-indigo-400 border border-indigo-500/20',
+          badgeStyle: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
         };
       case 'DETAILED_REPORT':
       case 'IMPORTANT_POINTS_NOTES':
@@ -103,22 +99,18 @@ export default function ToolGrid({
       case 'ASSIGNMENT_ASSISTANT':
         return {
           suiteId: 'ANALYSIS_SUITE',
-          suiteName: 'Analysis & Reports Suite',
-          cardGradient: 'from-emerald-950/45 via-slate-900/80 to-teal-950/40 border-emerald-500/30 hover:border-emerald-400 hover:shadow-[0_0_30px_rgba(16,185,129,0.35)]',
-          iconGradient: 'from-emerald-400 via-teal-500 to-cyan-500 shadow-emerald-500/40',
-          textColor: 'text-emerald-300',
-          badgeStyle: 'bg-emerald-500/20 text-emerald-200 border-emerald-400/40'
+          suiteName: 'Analysis Suite',
+          iconBg: 'bg-teal-600/10 text-teal-400 border border-teal-500/20',
+          badgeStyle: 'bg-teal-500/10 text-teal-400 border-teal-500/20'
         };
       case 'EXPLAIN_TOPIC':
       case 'FLASHCARD_GENERATOR':
       default:
         return {
           suiteId: 'STUDY_SUITE',
-          suiteName: 'Interactive Study Suite',
-          cardGradient: 'from-amber-950/45 via-slate-900/80 to-rose-950/40 border-amber-500/30 hover:border-amber-400 hover:shadow-[0_0_30px_rgba(245,158,11,0.35)]',
-          iconGradient: 'from-amber-400 via-orange-500 to-rose-500 shadow-amber-500/40',
-          textColor: 'text-amber-300',
-          badgeStyle: 'bg-amber-500/20 text-amber-200 border-amber-400/40'
+          suiteName: 'Interactive Suite',
+          iconBg: 'bg-sky-600/10 text-sky-400 border border-sky-500/20',
+          badgeStyle: 'bg-sky-500/10 text-sky-400 border-sky-500/20'
         };
     }
   };
@@ -144,10 +136,15 @@ export default function ToolGrid({
       const activeSession = localStorage.getItem('eduagent_active_session');
       let textToUse = sourceText || '';
       if (!textToUse && activeSession) {
-        const sess = JSON.parse(activeSession);
-        textToUse =
-          sess.files?.map((f: any) => f.extractedText || f.fileName).join('\n\n') ||
-          'Comprehensive lecture notes on fundamental concepts, theorems, equations, and applications.';
+        try {
+          const sess = JSON.parse(activeSession);
+          textToUse =
+            sess.files?.map((f: any) => f.extractedText || f.fileName).join('\n\n') || '';
+        } catch (_) {}
+      }
+
+      if (!textToUse) {
+        textToUse = 'Comprehensive lecture notes and core examination curriculum on foundational concepts.';
       }
 
       const customKey = localStorage.getItem('eduagent_openai_key') || '';
@@ -156,31 +153,32 @@ export default function ToolGrid({
         reqHeaders['x-openai-api-key'] = customKey;
       }
 
-      const res = await fetch('/api/ai/generate', {
+      // Execute via /api/tools/execute endpoint
+      const res = await fetch('/api/tools/execute', {
         method: 'POST',
         headers: reqHeaders,
         body: JSON.stringify({
           toolKey: activeModalTool.key,
-          sourceText: textToUse || 'Syllabus and lecture notes regarding fundamental examination topics.',
+          sourceText: textToUse,
           parameters: params,
           apiKey: customKey
         })
       });
 
       const json = await res.json();
-      if (json.success && json.result) {
-        // Save result in local session and navigate to results page
-        const resultId = `res_${Date.now()}`;
+      if (json.success && (json.data || json.result)) {
+        const resultId = json.id || `res_${Date.now()}`;
+        const resultData = json.data || json.result?.data;
         const record = {
           id: resultId,
           toolType: activeModalTool.key,
           toolTitle: activeModalTool.title,
           parameters: params,
-          resultData: json.result.data,
-          tokensUsed: json.result.tokensUsed,
-          modelName: json.result.modelUsed,
-          durationMs: json.result.durationMs,
-          quotaWarning: json.result.quotaWarning,
+          resultData: resultData,
+          tokensUsed: json.tokensUsed || json.result?.tokensUsed || 850,
+          modelName: json.modelUsed || json.result?.modelUsed || 'gpt-4o',
+          durationMs: json.durationMs || json.result?.durationMs || 1200,
+          quotaWarning: json.quotaWarning || json.result?.quotaWarning,
           createdAt: new Date().toISOString()
         };
 
@@ -195,7 +193,7 @@ export default function ToolGrid({
       }
     } catch (e: any) {
       console.error(e);
-      alert('Error communicating with AI Agent: ' + e.message);
+      alert('Error running AI Tool: ' + e.message);
     } finally {
       setIsRunning(false);
     }
@@ -203,18 +201,18 @@ export default function ToolGrid({
 
   return (
     <div className="space-y-6">
-      {/* Category Pills & Search */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+      {/* Category Filter Pills & Search */}
+      <div className="flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4">
         {/* Category Pills */}
         <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 scrollbar-none">
           {categories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(cat.id)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-200 ${
+              className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
                 selectedCategory === cat.id
-                  ? 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/25 border border-purple-400/40 ring-1 ring-white/20'
-                  : 'bg-white/[0.04] text-slate-300 hover:bg-white/[0.08] hover:text-white border border-white/10 backdrop-blur-md'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'bg-slate-900/60 text-slate-400 hover:text-white border border-slate-800'
               }`}
             >
               {cat.name}
@@ -222,21 +220,21 @@ export default function ToolGrid({
           ))}
         </div>
 
-        {/* Search Input */}
+        {/* Search Input (16px on mobile to avoid iOS Safari zoom) */}
         <div className="relative w-full md:w-72">
-          <Search className="w-4 h-4 text-purple-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search 15+ educational tools..."
+            placeholder="Search 15 AI tools..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-white/[0.05] rounded-xl border border-white/10 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400/50 shadow-inner backdrop-blur-md"
+            className="w-full h-11 pl-10 pr-4 bg-slate-900/60 rounded-xl border border-slate-800 text-base sm:text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
           />
         </div>
       </div>
 
-      {/* Grid of 15 Tools */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Grid: 1-column mobile, 2-column tablet, 3-column desktop */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
         {filteredTools.map((tool) => {
           const IconComponent = ICON_MAP[tool.iconName] || FileText;
           const isPro = tool.minTier === 'PRO';
@@ -246,47 +244,44 @@ export default function ToolGrid({
             <div
               key={tool.key}
               onClick={() => handleToolClick(tool)}
-              className={`group relative cursor-pointer rounded-2xl p-5 bg-gradient-to-br ${suite.cardGradient} backdrop-blur-xl border transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between overflow-hidden`}
+              className="group cursor-pointer rounded-2xl p-5 bg-[#111827]/85 backdrop-blur-md border border-slate-800/80 hover:border-blue-500/50 hover:bg-[#111827] transition-all flex flex-col justify-between shadow-sm active:scale-[0.99]"
             >
-              {/* Subtle ambient corner flare */}
-              <div className="absolute -top-10 -right-10 w-28 h-28 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500 pointer-events-none" />
-
               <div>
                 <div className="flex items-center justify-between mb-3.5">
-                  <div className={`w-11 h-11 rounded-xl bg-gradient-to-tr ${suite.iconGradient} text-white flex items-center justify-center shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:rotate-2`}>
+                  <div className={`w-11 h-11 rounded-xl ${suite.iconBg} flex items-center justify-center transition-transform group-hover:scale-105`}>
                     <IconComponent className="w-5 h-5" />
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className={`text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full border backdrop-blur-md ${suite.badgeStyle}`}>
-                      {suite.suiteName.replace(' Suite', '')}
+                    <span className={`text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full border ${suite.badgeStyle}`}>
+                      {suite.suiteName}
                     </span>
                     {isPro ? (
-                      <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500/25 to-orange-500/25 text-amber-300 border border-amber-500/40 flex items-center gap-1 shadow-sm">
+                      <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center gap-1">
                         <Lock className="w-2.5 h-2.5" /> PRO
                       </span>
                     ) : (
-                      <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-white/10 text-slate-300 border border-white/10">
+                      <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
                         FREE
                       </span>
                     )}
                   </div>
                 </div>
 
-                <h4 className="font-bold text-white text-base group-hover:text-purple-300 transition-colors">
+                <h4 className="font-bold text-white text-base group-hover:text-blue-400 transition-colors">
                   {tool.title}
                 </h4>
-                <p className="text-xs text-slate-300/80 mt-1.5 line-clamp-2 leading-relaxed">
+                <p className="text-xs text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">
                   {tool.shortDesc}
                 </p>
               </div>
 
-              <div className="pt-4 mt-4 border-t border-white/10 flex items-center justify-between">
-                <span className="text-[11px] font-medium text-slate-400 flex items-center gap-1">
-                  <Clock className="w-3 h-3 text-purple-400" /> ~30s run
+              <div className="pt-4 mt-4 border-t border-slate-800/80 flex items-center justify-between">
+                <span className="text-[11px] font-medium text-slate-500 flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5 text-slate-400" /> ~30s
                 </span>
-                <div className="flex items-center gap-1.5 text-xs font-semibold text-white/90 group-hover:text-white transition-colors bg-white/5 group-hover:bg-white/15 px-3 py-1.5 rounded-lg border border-white/10 group-hover:border-white/20 shadow-sm">
+                <div className="min-h-[36px] flex items-center gap-1.5 text-xs font-semibold text-slate-300 group-hover:text-white transition-colors bg-slate-900 group-hover:bg-blue-600 px-3 py-1.5 rounded-xl border border-slate-800 group-hover:border-blue-500">
                   <span>Launch</span>
-                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                 </div>
               </div>
             </div>

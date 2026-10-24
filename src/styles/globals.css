@@ -3,53 +3,62 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 241, 245, 249;
-  --background-start-rgb: 8, 11, 22;
-  --background-end-rgb: 13, 17, 39;
+  --foreground-rgb: 248, 250, 252;
+  --background-rgb: 9, 13, 22;
+  --surface-rgb: 17, 24, 39;
+  --border-rgb: 30, 41, 59;
 }
 
 body {
   color: rgb(var(--foreground-rgb));
-  background-color: #080B16;
+  background-color: #090D16;
   min-height: 100vh;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* Glassmorphism utility classes */
-.glass-cosmic {
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.10);
+/* Enterprise SaaS Card & Surface utilities */
+.enterprise-card {
+  background: #111827;
+  border: 1px solid #1E293B;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.35);
+  border-radius: 1rem;
 }
 
-.glass-cosmic-hover:hover {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.20);
+.enterprise-card-hover {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.glass-panel-glow {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.15), 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+.enterprise-card-hover:hover {
+  border-color: #334155;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px -4px rgba(0, 0, 0, 0.5);
 }
 
-/* Custom modern scrollbars */
+/* Mobile Safe Areas */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 16px);
+}
+
+/* Clean minimal scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(8, 11, 22, 0.6);
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: #334155;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(168, 85, 247, 0.6);
+  background: #475569;
 }
 
 /* Flashcard 3D perspective */

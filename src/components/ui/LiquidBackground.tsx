@@ -26,47 +26,39 @@ export default function LiquidBackground() {
       velocity: 0
     };
 
-    // Ambient floating fluid nodes matching the cosmic aurora palette
+    // Ambient floating subtle nodes matching the refined Enterprise Sapphire & Navy palette
     const fluidBlobs = [
       {
-        x: width * 0.2,
+        x: width * 0.25,
         y: height * 0.25,
-        radius: 380,
-        vx: 0.45,
-        vy: 0.28,
-        color: 'rgba(124, 58, 237, 0.28)' // Electric Violet
+        radius: 400,
+        vx: 0.25,
+        vy: 0.18,
+        color: 'rgba(37, 99, 235, 0.08)' // Royal Sapphire
       },
       {
-        x: width * 0.8,
+        x: width * 0.75,
         y: height * 0.65,
-        radius: 400,
-        vx: -0.4,
-        vy: -0.35,
-        color: 'rgba(6, 182, 212, 0.25)' // Cyber Cyan
+        radius: 420,
+        vx: -0.22,
+        vy: -0.2,
+        color: 'rgba(79, 70, 229, 0.07)' // Indigo
       },
       {
         x: width * 0.5,
-        y: height * 0.85,
-        radius: 360,
-        vx: 0.32,
-        vy: -0.42,
-        color: 'rgba(236, 72, 153, 0.24)' // Hot Magenta
+        y: height * 0.8,
+        radius: 380,
+        vx: 0.2,
+        vy: -0.22,
+        color: 'rgba(13, 148, 136, 0.06)' // Teal
       },
       {
-        x: width * 0.85,
-        y: height * 0.15,
-        radius: 320,
-        vx: -0.28,
-        vy: 0.38,
-        color: 'rgba(79, 70, 229, 0.26)' // Cosmic Indigo
-      },
-      {
-        x: width * 0.15,
-        y: height * 0.75,
-        radius: 300,
-        vx: 0.35,
-        vy: -0.25,
-        color: 'rgba(245, 158, 11, 0.18)' // Aurora Amber
+        x: width * 0.8,
+        y: height * 0.2,
+        radius: 350,
+        vx: -0.18,
+        vy: 0.2,
+        color: 'rgba(30, 58, 138, 0.08)' // Deep Blue
       }
     ];
 

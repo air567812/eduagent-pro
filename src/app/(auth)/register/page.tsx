@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   GraduationCap,
   Lock,
@@ -11,12 +11,13 @@ import {
   ArrowRight,
   AlertCircle,
   Eye,
-  EyeOff
+  EyeOff,
+  Sparkles,
+  ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import { Role } from '@/types';
-import ReactiveAiMascot from '@/components/auth/ReactiveAiMascot';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -33,37 +34,15 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  const [isEmailTyping, setIsEmailTyping] = useState(false);
-  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
-  const [isGoogleHovered, setIsGoogleHovered] = useState(false);
-
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [cardTilt, setCardTilt] = useState({ rotateX: 0, rotateY: 0, spotX: 50, spotY: 50 });
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width;
-    const y = (e.clientY - rect.top) / rect.height;
-
-    setMousePos({
-      x: (x - 0.5) * 2,
-      y: (y - 0.5) * 2
-    });
-
-    setCardTilt({
-      rotateX: (y - 0.5) * -8,
-      rotateY: (x - 0.5) * 8,
-      spotX: x * 100,
-      spotY: y * 100
-    });
+  const calculatePasswordStrength = (pass: string) => {
+    let score = 0;
+    if (pass.length >= 6) score++;
+    if (pass.length >= 8) score++;
+    if (/[0-9]/.test(pass)) score++;
+    if (/[^A-Za-z0-9]/.test(pass)) score++;
+    return score;
   };
-
-  const handleMouseLeave = () => {
-    setMousePos({ x: 0, y: 0 });
-    setCardTilt({ rotateX: 0, rotateY: 0, spotX: 50, spotY: 50 });
-  };
+  const strengthScore = calculatePasswordStrength(password);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,246 +79,228 @@ export default function RegisterPage() {
   };
 
   return (
-    <div
-      ref={containerRef}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      className="relative max-w-5xl mx-auto my-4 min-h-[640px] perspective-1000 select-none py-4"
-    >
+    <div className="min-h-[80vh] flex flex-col items-center justify-center px-4 py-8 sm:py-12 select-none">
       <motion.div
-        style={{
-          rotateX: cardTilt.rotateX,
-          rotateY: cardTilt.rotateY,
-          transformStyle: 'preserve-3d'
-        }}
-        transition={{ type: 'spring', damping: 20, stiffness: 200 }}
-        className="relative w-full rounded-[36px] p-2 bg-gradient-to-tr from-white/[0.12] via-white/[0.04] to-white/[0.10] backdrop-blur-2xl border border-white/[0.15] shadow-[0_20px_70px_rgba(0,0,0,0.55)] overflow-hidden"
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: 'easeOut' }}
+        className="w-full max-w-[420px] rounded-2xl bg-[#111827]/90 backdrop-blur-2xl border border-slate-800/80 shadow-[0_20px_50px_rgba(0,0,0,0.6)] p-6 sm:p-8 space-y-6"
       >
-        <div
-          className="absolute inset-0 pointer-events-none opacity-40 transition-opacity duration-300"
-          style={{
-            background: `radial-gradient(circle 320px at ${cardTilt.spotX}% ${cardTilt.spotY}%, rgba(236, 72, 153, 0.35), rgba(6, 182, 212, 0.2), transparent 70%)`
-          }}
-        />
+        <div className="text-center space-y-2">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-600/10 border border-blue-500/20 text-blue-500 shadow-inner">
+            <GraduationCap className="w-6 h-6 text-blue-500" />
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+            Create your account
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-400">
+            Join EduAgent Pro to unlock 15 AI-powered educational tools
+          </p>
+        </div>
 
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 rounded-[32px] overflow-hidden bg-slate-950/40">
-          
-          {/* Form Panel */}
-          <div className="p-8 sm:p-10 flex flex-col justify-center space-y-6 lg:order-1">
-            <div className="space-y-4">
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                  Create your Scholar Account
-                </h1>
-                <p className="text-xs text-slate-400 mt-1">
-                  Free forever with up to 25 images per upload session &amp; 15+ AI exam agents.
-                </p>
-              </div>
+        <div className="flex items-center rounded-xl bg-slate-900/80 p-1 border border-slate-800/80">
+          <button
+            type="button"
+            onClick={() => router.push('/login')}
+            className="flex-1 py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition-all"
+          >
+            Sign In
+          </button>
+          <button
+            type="button"
+            className="flex-1 py-2 text-xs font-semibold rounded-lg bg-blue-600 text-white shadow-sm transition-all"
+          >
+            Create Account
+          </button>
+        </div>
 
-              {/* Quick Switch to Login */}
-              <div className="p-1 rounded-2xl bg-white/[0.06] border border-white/[0.1] grid grid-cols-2 gap-1">
-                <button
-                  type="button"
-                  onClick={() => router.push('/login')}
-                  className="py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-all"
-                >
-                  Sign In
-                </button>
-                <button
-                  type="button"
-                  className="py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white shadow-md shadow-purple-500/25 transition-all"
-                >
-                  Create Account
-                </button>
-              </div>
-            </div>
+        <button
+          type="button"
+          onClick={handleGoogleSignIn}
+          disabled={googleLoading || loading}
+          className="w-full h-12 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-semibold text-sm flex items-center justify-center gap-3 transition-colors shadow-sm disabled:opacity-50 active:scale-[0.99]"
+        >
+          {googleLoading ? (
+            <div className="w-5 h-5 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin" />
+          ) : (
+            <svg className="w-5 h-5" viewBox="0 0 24 24">
+              <path
+                fill="#4285F4"
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+              />
+              <path
+                fill="#EA4335"
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+              />
+            </svg>
+          )}
+          <span>Sign up with Google</span>
+        </button>
 
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-semibold flex items-center gap-2.5"
-              >
-                <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-400" />
-                <span>{error}</span>
-              </motion.div>
-            )}
+        <div className="relative flex items-center justify-center">
+          <div className="border-t border-slate-800 w-full" />
+          <span className="bg-[#111827] px-3 text-[11px] font-medium text-slate-500 uppercase tracking-wider relative">
+            or register with email
+          </span>
+        </div>
 
-            {/* Official Google Sign-In Button */}
-            <motion.button
-              type="button"
-              onClick={handleGoogleSignIn}
-              onMouseEnter={() => setIsGoogleHovered(true)}
-              onMouseLeave={() => setIsGoogleHovered(false)}
-              disabled={googleLoading || loading}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
-              className="w-full py-3 px-4 rounded-2xl bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold flex items-center justify-center gap-3 shadow-lg shadow-white/5 transition-all disabled:opacity-50 border border-white/20"
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-start gap-2.5 overflow-hidden"
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24">
-                <path
-                  fill="#4285F4"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                />
-                <path
-                  fill="#EA4335"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                />
-              </svg>
-              <span>{googleLoading ? 'Connecting Google Account...' : 'Sign up with Google (Gmail)'}</span>
-            </motion.button>
+              <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 font-medium leading-relaxed">{error}</div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-            <div className="relative flex items-center justify-center">
-              <div className="border-t border-white/[0.1] w-full" />
-              <span className="bg-[#080B16] px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest absolute">
-                or email
-              </span>
+        <form onSubmit={handleRegister} className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-slate-300">Full Name</label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                <User className="w-4 h-4" />
+              </div>
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ary Kothari"
+                className="w-full h-11 pl-10 pr-3.5 rounded-xl bg-slate-900/60 border border-slate-700/60 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-100 placeholder:text-slate-500 text-base transition-colors"
+              />
             </div>
-
-            <form onSubmit={handleRegister} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Full Name</label>
-                <div className="relative">
-                  <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full pl-10 pr-3 py-2.5 rounded-2xl bg-white/[0.05] border border-white/[0.12] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20 transition-all"
-                    placeholder="e.g. Maya Lin"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Academic Email</label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      setIsEmailTyping(e.target.value.length > 0);
-                    }}
-                    onFocus={() => setIsEmailTyping(email.length > 0)}
-                    onBlur={() => setIsEmailTyping(false)}
-                    className="w-full pl-10 pr-3 py-2.5 rounded-2xl bg-white/[0.05] border border-white/[0.12] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20 transition-all"
-                    placeholder="maya@stanford.edu"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Password</label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    minLength={6}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onFocus={() => setIsPasswordFocused(true)}
-                    onBlur={() => setIsPasswordFocused(false)}
-                    className="w-full pl-10 pr-10 py-2.5 rounded-2xl bg-white/[0.05] border border-white/[0.12] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-500/20 transition-all"
-                    placeholder="At least 6 characters"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Academic Role</label>
-                <select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value as Role)}
-                  className="w-full px-3 py-2.5 rounded-2xl bg-[#0e1329] border border-white/[0.12] text-xs text-white focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 transition-all"
-                >
-                  <option value="STUDENT">Student (High School / University)</option>
-                  <option value="EDUCATOR">Educator / Professor / TA</option>
-                  <option value="INSTITUTION_ADMIN">Institution Administrator</option>
-                </select>
-              </div>
-
-              <motion.button
-                type="submit"
-                disabled={loading || googleLoading}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
-                className="w-full py-3 rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:opacity-95 text-white font-bold text-xs shadow-lg shadow-purple-500/30 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-              >
-                <span>{loading ? 'Creating Account...' : 'Complete Registration'}</span>
-                <ArrowRight className="w-4 h-4" />
-              </motion.button>
-            </form>
           </div>
 
-          {/* Mascot Showcase Panel */}
-          <div className="relative flex flex-col justify-between p-8 sm:p-10 bg-gradient-to-br from-indigo-950/60 via-purple-950/40 to-slate-950/80 border border-white/[0.08] rounded-[28px] overflow-hidden lg:order-2">
-            <div className="absolute -top-24 -left-24 w-60 h-60 rounded-full bg-cyan-500/20 blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-24 -right-24 w-60 h-60 rounded-full bg-pink-500/20 blur-3xl pointer-events-none" />
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-slate-300">Academic Role</label>
+            <div className="grid grid-cols-3 gap-2">
+              {(['STUDENT', 'EDUCATOR', 'RESEARCHER'] as Role[]).map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setRole(r)}
+                  className={`py-2 rounded-lg border text-xs font-semibold capitalize transition-all ${
+                    role === r
+                      ? 'bg-blue-600/20 border-blue-500 text-blue-400'
+                      : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  {r.toLowerCase()}
+                </button>
+              ))}
+            </div>
+          </div>
 
-            <div className="relative z-10 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white shadow-md shadow-purple-500/30">
-                  <GraduationCap className="w-5 h-5" />
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-slate-300">Email Address</label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                <Mail className="w-4 h-4" />
+              </div>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@university.edu"
+                className="w-full h-11 pl-10 pr-3.5 rounded-xl bg-slate-900/60 border border-slate-700/60 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-100 placeholder:text-slate-500 text-base transition-colors"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-slate-300">Password</label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                <Lock className="w-4 h-4" />
+              </div>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="At least 8 characters"
+                className="w-full h-11 pl-10 pr-11 rounded-xl bg-slate-900/60 border border-slate-700/60 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-100 placeholder:text-slate-500 text-base transition-colors"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-200 transition-colors"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+
+            {password.length > 0 && (
+              <div className="pt-1 space-y-1">
+                <div className="grid grid-cols-4 gap-1.5 h-1.5">
+                  {[1, 2, 3, 4].map((level) => (
+                    <div
+                      key={level}
+                      className={`rounded-full transition-colors ${
+                        strengthScore >= level
+                          ? strengthScore === 1
+                            ? 'bg-rose-500'
+                            : strengthScore === 2
+                            ? 'bg-amber-500'
+                            : strengthScore === 3
+                            ? 'bg-blue-500'
+                            : 'bg-emerald-500'
+                          : 'bg-slate-800'
+                      }`}
+                    />
+                  ))}
                 </div>
-                <div>
-                  <span className="font-black text-white text-base tracking-tight">EduAgent</span>
-                  <span className="text-[10px] font-black uppercase ml-1 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-cyan-400 to-purple-500 text-white">
-                    PRO
+                <div className="flex justify-between text-[10px] text-slate-500">
+                  <span>Security strength</span>
+                  <span className="font-medium text-slate-400">
+                    {strengthScore <= 1 ? 'Weak' : strengthScore === 2 ? 'Fair' : strengthScore === 3 ? 'Good' : 'Strong'}
                   </span>
                 </div>
               </div>
-              <span className="text-[11px] font-bold text-slate-400 bg-white/[0.06] px-3 py-1 rounded-full border border-white/[0.1]">
-                Scholar Signup
-              </span>
-            </div>
-
-            <div className="relative z-10 my-4 flex-1 flex items-center justify-center">
-              <ReactiveAiMascot
-                mousePos={mousePos}
-                isEmailTyping={isEmailTyping}
-                isPasswordFocused={isPasswordFocused}
-                showPassword={showPassword}
-                isGoogleHovered={isGoogleHovered}
-                mode="signup"
-              />
-            </div>
-
-            <div className="relative z-10 pt-4 border-t border-white/[0.08] grid grid-cols-3 gap-2 text-center">
-              <div className="p-2 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-                <p className="text-[10px] font-bold text-cyan-400">25 Images</p>
-                <p className="text-[9px] text-slate-400">Simultaneous OCR</p>
-              </div>
-              <div className="p-2 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-                <p className="text-[10px] font-bold text-purple-400">15 AI Tools</p>
-                <p className="text-[9px] text-slate-400">Exam-Calibrated</p>
-              </div>
-              <div className="p-2 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-                <p className="text-[10px] font-bold text-pink-400">Real OpenAI</p>
-                <p className="text-[9px] text-slate-400">gpt-4o Powered</p>
-              </div>
-            </div>
+            )}
           </div>
-        </div>
+
+          <button
+            type="submit"
+            disabled={loading || googleLoading}
+            className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm transition-all shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.99]"
+          >
+            {loading ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>
+                <span>Create Free Account</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
+          </button>
+        </form>
+
+        <p className="text-center text-xs text-slate-400">
+          Already have an account?{' '}
+          <button
+            type="button"
+            onClick={() => router.push('/login')}
+            className="text-blue-400 hover:text-blue-300 font-semibold"
+          >
+            Sign In
+          </button>
+        </p>
       </motion.div>
     </div>
   );

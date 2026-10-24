@@ -8,9 +8,8 @@ import {
   FileText,
   X,
   Sparkles,
-  Zap,
-  CheckCircle2,
-  AlertCircle
+  Camera,
+  FolderOpen
 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 
@@ -38,6 +37,7 @@ export default function GeminiBentoUploader({
 }: BentoUploaderProps) {
   const { warning, success } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
   const imageCount = files.filter((f) => f.type === 'image').length;
@@ -67,8 +67,8 @@ export default function GeminiBentoUploader({
       if (isImg) {
         if (currentImgCount >= maxImages) {
           warning(
-            'Batch Ceiling Reached',
-            `Free tier supports up to ${maxImages} images simultaneously. Upgrade to Educator for 500.`
+            'Batch Limit Reached',
+            `Batch supports up to ${maxImages} notes photos simultaneously.`
           );
           break;
         }
@@ -94,7 +94,7 @@ export default function GeminiBentoUploader({
 
     if (validItems.length > 0) {
       onFilesChange([...files, ...validItems]);
-      success('Files Added', `${validItems.length} new materials staged for OCR.`);
+      success('Files Added', `${validItems.length} new materials staged for analysis.`);
     }
   };
 
@@ -104,7 +104,25 @@ export default function GeminiBentoUploader({
 
   return (
     <div className="space-y-4">
-      {/* Multimodal Bento Drop Zone with Animated Gradient Border */}
+      {/* Hidden file inputs */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept="image/*,application/pdf"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
+
+      {/* Multimodal Bento Drop Zone with Enterprise Styling */}
       <div
         onDragOver={(e) => {
           e.preventDefault();
@@ -113,103 +131,113 @@ export default function GeminiBentoUploader({
         onDragLeave={() => setIsDragOver(false)}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
-        className={`relative rounded-3xl p-6 sm:p-8 cursor-pointer overflow-hidden transition-all duration-300 ${
+        className={`relative rounded-2xl p-5 sm:p-7 cursor-pointer overflow-hidden transition-all duration-200 ${
           isDragOver
-            ? 'bg-purple-950/40 border-2 border-dashed border-cyan-400 scale-[1.01]'
-            : 'bg-white/[0.03] hover:bg-white/[0.06] border-2 border-dashed border-white/[0.15] hover:border-purple-400/60'
+            ? 'bg-blue-950/20 border-2 border-dashed border-blue-500 scale-[1.005]'
+            : 'bg-[#111827]/70 hover:bg-[#111827]/90 border-2 border-dashed border-slate-700/80 hover:border-blue-500/60 shadow-sm'
         }`}
       >
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept="image/*,application/pdf"
-          onChange={handleFileSelect}
-          className="hidden"
-        />
-
-        {/* Laser-scan animation bar during processing */}
+        {/* Processing Indicator */}
         {isProcessing && (
-          <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 animate-laser-scan shadow-[0_0_20px_#a855f7] z-20 pointer-events-none" />
+          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-500 animate-pulse z-20 pointer-events-none" />
         )}
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-4 text-center sm:text-left">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-cyan-500 via-indigo-600 to-pink-500 p-0.5 shadow-lg shadow-purple-500/25 flex items-center justify-center">
-              <div className="w-full h-full rounded-[14px] bg-slate-950 flex items-center justify-center text-white">
-                <UploadCloud className="w-7 h-7 text-cyan-300 animate-bounce" />
-              </div>
+          <div className="flex items-center gap-3.5 text-center sm:text-left">
+            <div className="w-12 h-12 rounded-xl bg-blue-600/10 border border-blue-500/20 text-blue-500 flex items-center justify-center flex-shrink-0">
+              <UploadCloud className="w-6 h-6" />
             </div>
 
             <div>
               <div className="flex items-center gap-2 justify-center sm:justify-start">
-                <h4 className="text-sm sm:text-base font-extrabold text-white">
-                  Gemini Multimodal Dropzone
+                <h4 className="text-sm sm:text-base font-bold text-white">
+                  Curriculum Upload & OCR
                 </h4>
-                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-gradient-to-r from-cyan-400 to-purple-500 text-white shadow-xs">
-                  Vision OCR
+                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                  Multimodal
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                Drop your syllabus PDFs or up to 25 handwritten notebook photos here.
+                Drop syllabus PDFs or up to 25 handwritten notes photos.
               </p>
             </div>
           </div>
 
-          {/* Live 25-Image Counter Pill */}
-          <div className="flex items-center gap-2">
-            <div
-              className={`px-3.5 py-1.5 rounded-2xl border text-xs font-bold flex items-center gap-2 shadow-sm ${
-                imageCount >= maxImages
-                  ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-rose-500/20'
-                  : 'bg-gradient-to-r from-cyan-500/20 via-purple-500/20 to-pink-500/20 text-white border-white/[0.15]'
-              }`}
+          {/* Action Buttons: Camera Snap + Browse Files */}
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-center">
+            {/* Mobile Camera Direct Button */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                cameraInputRef.current?.click();
+              }}
+              className="min-h-[44px] px-3.5 py-2 rounded-xl bg-blue-600/15 hover:bg-blue-600/25 border border-blue-500/30 text-blue-400 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+              title="Take photo of handwritten notes"
             >
-              <ImageIcon className="w-3.5 h-3.5 text-cyan-400" />
-              <span>
-                {imageCount} / {maxImages} Images
-              </span>
+              <Camera className="w-4 h-4" />
+              <span>Camera</span>
+            </button>
+
+            {/* Browse Button */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                fileInputRef.current?.click();
+              }}
+              className="min-h-[44px] px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+            >
+              <FolderOpen className="w-4 h-4" />
+              <span>Browse</span>
+            </button>
+
+            {/* Counter Badge */}
+            <div className="min-h-[44px] px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+              <ImageIcon className="w-3.5 h-3.5 text-blue-400" />
+              <span>{imageCount}/{maxImages}</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Bento Thumbnail Grid */}
+      {/* Horizontal Gallery Scroll for Mobile, Grid on Desktop */}
       {files.length > 0 && (
         <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs text-slate-400 font-semibold px-1">
+          <div className="flex items-center justify-between text-xs text-slate-400 font-medium px-1">
             <span>Staged Materials ({files.length} items)</span>
             {isProcessing && (
-              <span className="text-cyan-400 flex items-center gap-1.5 animate-pulse">
-                <Zap className="w-3.5 h-3.5" /> High-Resolution OCR Ingestion Active...
+              <span className="text-blue-400 flex items-center gap-1 animate-pulse">
+                <Sparkles className="w-3.5 h-3.5" /> High-Resolution OCR Ingestion Active...
               </span>
             )}
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+          {/* Horizontal scroll container on mobile, grid on desktop */}
+          <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-none sm:grid sm:grid-cols-4 md:grid-cols-6 sm:overflow-visible">
             <AnimatePresence>
               {files.map((file) => (
                 <motion.div
                   key={file.id}
-                  initial={{ opacity: 0, scale: 0.85 }}
+                  initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.85 }}
-                  className="relative group rounded-2xl bg-white/[0.04] border border-white/[0.10] p-2 hover:border-purple-400/50 hover:bg-white/[0.08] transition-all shadow-md overflow-hidden"
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className="relative flex-shrink-0 w-32 sm:w-auto rounded-xl bg-slate-900/90 border border-slate-800 p-2 group hover:border-blue-500/50 transition-all shadow-sm"
                 >
-                  {/* Delete button on hover */}
+                  {/* Remove button */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       removeFile(file.id);
                     }}
-                    className="absolute top-1.5 right-1.5 z-10 w-6 h-6 rounded-full bg-slate-900/80 hover:bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-md"
+                    className="absolute top-1.5 right-1.5 z-10 w-6 h-6 rounded-full bg-slate-900/90 hover:bg-rose-600 text-slate-300 hover:text-white flex items-center justify-center transition-all shadow-md"
                     title="Remove item"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
 
-                  {/* Thumbnail / Icon */}
-                  <div className="w-full h-20 rounded-xl bg-slate-950 flex items-center justify-center overflow-hidden">
+                  {/* Thumbnail */}
+                  <div className="w-full h-20 rounded-lg bg-slate-950 flex items-center justify-center overflow-hidden">
                     {file.previewUrl ? (
                       <img
                         src={file.previewUrl}
@@ -217,14 +245,14 @@ export default function GeminiBentoUploader({
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                       />
                     ) : (
-                      <div className="flex flex-col items-center justify-center text-rose-400">
-                        <FileText className="w-7 h-7" />
-                        <span className="text-[9px] font-black uppercase mt-1">PDF</span>
+                      <div className="flex flex-col items-center justify-center text-blue-400">
+                        <FileText className="w-6 h-6" />
+                        <span className="text-[9px] font-bold uppercase mt-1">PDF</span>
                       </div>
                     )}
                   </div>
 
-                  <p className="text-[10px] font-semibold text-slate-300 truncate mt-1.5 px-0.5">
+                  <p className="text-[10px] font-medium text-slate-300 truncate mt-1.5 px-0.5">
                     {file.name}
                   </p>
                 </motion.div>
